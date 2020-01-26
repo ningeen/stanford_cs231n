@@ -33,7 +33,25 @@ def softmax_loss_naive(W, X, y, reg):
     #############################################################################
     # *****START OF YOUR CODE (DO NOT DELETE/MODIFY THIS LINE)*****
 
-    pass
+    n_examples = X.shape[0]
+    n_classes = W.shape[-1]
+
+    for i in range(n_examples):
+        unnorm_scores = np.dot(X[i], W)
+        unnorm_scores -= unnorm_scores.max()
+        scores = np.exp(unnorm_scores)
+        loss -= np.log(scores[y[i]] / scores.sum())
+        
+        for c in range(n_classes):
+            dW[:, c] += X[i] * scores[c] / scores.sum()
+
+        dW[:, y[i]] -= X[i]
+
+    loss /= n_examples
+    loss += reg * np.power(W, 2).sum()
+    
+    dW /= n_examples
+    dW += 2 * reg * W
 
     # *****END OF YOUR CODE (DO NOT DELETE/MODIFY THIS LINE)*****
 
@@ -58,7 +76,18 @@ def softmax_loss_vectorized(W, X, y, reg):
     #############################################################################
     # *****START OF YOUR CODE (DO NOT DELETE/MODIFY THIS LINE)*****
 
-    pass
+    n_examples = X.shape[0]
+    n_classes = W.shape[-1]
+
+    unnorm_scores = np.dot(X, W)
+    unnorm_scores -= unnorm_scores.max(axis=1).reshape(-1, 1)
+    scores = np.exp(unnorm_scores)
+    loss = -np.log(scores[np.arange(n_examples), y] / scores.sum(axis=1)).mean()
+    loss += reg * np.power(W, 2).sum()
+
+    norm_scores = scores / scores.sum(axis=1).reshape(-1, 1)
+    norm_scores[np.arange(n_examples), y] -= 1
+    dW = np.dot(X.T, norm_scores) / n_examples  + 2 * reg * W
 
     # *****END OF YOUR CODE (DO NOT DELETE/MODIFY THIS LINE)*****
 
