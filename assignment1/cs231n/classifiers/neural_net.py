@@ -80,7 +80,9 @@ class TwoLayerNet(object):
         #############################################################################
         # *****START OF YOUR CODE (DO NOT DELETE/MODIFY THIS LINE)*****
 
-        pass
+        fc_1 = np.dot(X, W1) + b1
+        relu_1 = fc_1.clip(min=0)
+        scores = np.dot(relu_1, W2) + b2
 
         # *****END OF YOUR CODE (DO NOT DELETE/MODIFY THIS LINE)*****
 
@@ -98,7 +100,10 @@ class TwoLayerNet(object):
         #############################################################################
         # *****START OF YOUR CODE (DO NOT DELETE/MODIFY THIS LINE)*****
 
-        pass
+        norm_scores = np.exp(scores - scores.max(axis=1).reshape(-1, 1))
+        loss = -np.log(norm_scores[np.arange(N), y] / norm_scores.sum(axis=1)).mean() 
+        loss += reg * np.power(W1, 2).sum() 
+        loss += reg * np.power(W2, 2).sum()
 
         # *****END OF YOUR CODE (DO NOT DELETE/MODIFY THIS LINE)*****
 
