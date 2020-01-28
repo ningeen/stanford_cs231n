@@ -100,8 +100,9 @@ class TwoLayerNet(object):
         #############################################################################
         # *****START OF YOUR CODE (DO NOT DELETE/MODIFY THIS LINE)*****
 
-        norm_scores = np.exp(scores - scores.max(axis=1).reshape(-1, 1))
-        loss = -np.log(norm_scores[np.arange(N), y] / norm_scores.sum(axis=1)).mean() 
+        stable_scores = np.exp(scores - scores.max(axis=1).reshape(-1, 1))
+        proba = stable_scores[np.arange(N), y] / stable_scores.sum(axis=1)
+        loss = -np.log(proba).mean() 
         loss += reg * np.power(W1, 2).sum() 
         loss += reg * np.power(W2, 2).sum()
 
@@ -116,7 +117,16 @@ class TwoLayerNet(object):
         #############################################################################
         # *****START OF YOUR CODE (DO NOT DELETE/MODIFY THIS LINE)*****
 
-        pass
+        grads['W1'] = np.zeros_like(W1)
+        grads['W2'] = np.zeros_like(W2)
+
+        proba_grad = proba
+        proba_grad[range(N), y] -= 1
+        grads['W2'] = np.dot(relu_1.T, proba) + 2 * reg * W2
+
+        # activated = relu_1 > 0
+
+
 
         # *****END OF YOUR CODE (DO NOT DELETE/MODIFY THIS LINE)*****
 
