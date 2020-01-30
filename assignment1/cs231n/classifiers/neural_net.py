@@ -80,9 +80,13 @@ class TwoLayerNet(object):
         #############################################################################
         # *****START OF YOUR CODE (DO NOT DELETE/MODIFY THIS LINE)*****
 
-        fc_1 = np.dot(X, W1) + b1
-        relu_1 = fc_1.clip(min=0)
-        scores = np.dot(relu_1, W2) + b2
+        xw1 = np.dot(X, W1)             # (N, hs)
+        fc_1 = xw1 + b1                 # (N, hs)
+        relu_1_mask = fc_1 < 0
+        relu_1 = fc_1
+        relu_1[relu_1_mask] = 0         # (N, hs)
+        reluw2 = np.dot(relu_1, W2)     # (N, C)
+        scores = reluw2 + b2            # (N, C)
 
         # *****END OF YOUR CODE (DO NOT DELETE/MODIFY THIS LINE)*****
 
@@ -100,8 +104,9 @@ class TwoLayerNet(object):
         #############################################################################
         # *****START OF YOUR CODE (DO NOT DELETE/MODIFY THIS LINE)*****
 
-        stable_scores = np.exp(scores - scores.max(axis=1).reshape(-1, 1))
-        proba = stable_scores[np.arange(N), y] / stable_scores.sum(axis=1)
+        stable_scores = scores - scores.max(axis=1).reshape(-1, 1)
+        exp_stable_scores = np.exp(stable_scores)  # (N, C)
+        proba = exp_stable_scores[np.arange(N), y] / exp_stable_scores.sum(axis=1)  # (N, 1)
         loss = -np.log(proba).mean() 
         loss += reg * np.power(W1, 2).sum() 
         loss += reg * np.power(W2, 2).sum()
@@ -117,16 +122,30 @@ class TwoLayerNet(object):
         #############################################################################
         # *****START OF YOUR CODE (DO NOT DELETE/MODIFY THIS LINE)*****
 
-        grads['W1'] = np.zeros_like(W1)
-        grads['W2'] = np.zeros_like(W2)
+        grads['W1'] = np.zeros_like(W1)  # (D, hs)
+        grads['W2'] = np.zeros_like(W2)  # (hs, C)
+        grads['b1'] = np.zeros_like(b1)  # (hs, )
+        grads['b2'] = np.zeros_like(b2)  # (C, )
 
-        proba_grad = proba
-        proba_grad[range(N), y] -= 1
-        grads['W2'] = np.dot(relu_1.T, proba) + 2 * reg * W2
+        dscores = np.zeros_like(exp_stable_scores)  # (N, C)
+        dscores = exp_stable_scores / exp_stable_scores.sum(axis=1).reshape(-1, 1)
+        dscores[np.arange(N), y] -= 1
 
-        # activated = relu_1 > 0
+        grads['b2'] = dscores.sum(axis=0) / N
 
+        dreluw2 = dscores                # (N, C)
+        grads['W2'] = np.dot(relu_1.T, dreluw2) / N
+        grads['W2'] += 2 * reg * W2
+        
+        drelu_1 = np.dot(dreluw2, W2.T)  # (N, hs)
+        dfc_1 = drelu_1
+        dfc_1[relu_1_mask] = 0           # (N, hs)
 
+        grads['b1'] = dfc_1.sum(axis=0) / N
+
+        dxw1 = dfc_1
+        grads['W1'] = np.dot(X.T, dxw1) / N  # (D, hs)
+        grads['W1'] += 2 * reg * W1
 
         # *****END OF YOUR CODE (DO NOT DELETE/MODIFY THIS LINE)*****
 
@@ -171,7 +190,9 @@ class TwoLayerNet(object):
             #########################################################################
             # *****START OF YOUR CODE (DO NOT DELETE/MODIFY THIS LINE)*****
 
-            pass
+            idx = np.random.choice(num_train, batch_size, replace=True)
+            X_batch = X[idx]
+            y_batch = y[idx]
 
             # *****END OF YOUR CODE (DO NOT DELETE/MODIFY THIS LINE)*****
 
@@ -187,7 +208,10 @@ class TwoLayerNet(object):
             #########################################################################
             # *****START OF YOUR CODE (DO NOT DELETE/MODIFY THIS LINE)*****
 
-            pass
+            self.params['W1'] -= learning_rate * grads['W1']
+            self.params['b1'] -= learning_rate * grads['b1']
+            self.params['W2'] -= learning_rate * grads['W2']
+            self.params['b2'] -= learning_rate * grads['b2']
 
             # *****END OF YOUR CODE (DO NOT DELETE/MODIFY THIS LINE)*****
 
@@ -233,7 +257,8 @@ class TwoLayerNet(object):
         ###########################################################################
         # *****START OF YOUR CODE (DO NOT DELETE/MODIFY THIS LINE)*****
 
-        pass
+        scores = self.loss(X)
+        y_pred = np.argmax(scores, axis=1)
 
         # *****END OF YOUR CODE (DO NOT DELETE/MODIFY THIS LINE)*****
 
