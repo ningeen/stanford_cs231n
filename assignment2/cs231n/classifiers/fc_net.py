@@ -193,7 +193,12 @@ class FullyConnectedNet(object):
         ############################################################################
         # *****START OF YOUR CODE (DO NOT DELETE/MODIFY THIS LINE)*****
 
-        pass
+        for n in range(self.num_layers):
+            n_in = input_dim if n == 0 else hidden_dims[n - 1]
+            n_out = num_classes if n == self.num_layers - 1 else hidden_dims[n]
+
+            self.params[f'W{n + 1}'] = np.random.normal(loc=0.0, scale=weight_scale, size=(n_in, n_out))
+            self.params[f'b{n + 1}'] = np.zeros((n_out, ))
 
         # *****END OF YOUR CODE (DO NOT DELETE/MODIFY THIS LINE)*****
         ############################################################################
@@ -256,7 +261,17 @@ class FullyConnectedNet(object):
         ############################################################################
         # *****START OF YOUR CODE (DO NOT DELETE/MODIFY THIS LINE)*****
 
-        pass
+        # {affine - [batch/layer norm] - relu - [dropout]} x (L - 1) - affine - softmax
+        cache = dict()
+
+        for n in range(self.num_layers):
+            func_forward = affine_forward if n == self.num_layers - 1 else affine_relu_forward
+
+            x = X if n == 0 else scores
+            w = self.params[f'W{n + 1}']
+            b = self.params[f'b{n + 1}']
+
+            scores, cache[n] = func_forward(x, w, b)
 
         # *****END OF YOUR CODE (DO NOT DELETE/MODIFY THIS LINE)*****
         ############################################################################
@@ -283,7 +298,18 @@ class FullyConnectedNet(object):
         ############################################################################
         # *****START OF YOUR CODE (DO NOT DELETE/MODIFY THIS LINE)*****
 
-        pass
+        # {affine - [batch/layer norm] - relu - [dropout]} x (L - 1) - affine - softmax
+        loss, grad_loss = softmax_loss(scores, y)
+        for n in range(self.num_layers):
+            loss += self.reg * np.power(self.params[f'W{n + 1}'], 2).sum() / 2
+
+        grad = grad_loss
+        for n in range(self.num_layers)[::-1]:
+            func_backward = affine_backward if n == self.num_layers - 1 else affine_relu_backward
+
+            grad, grads[f'W{n + 1}'], grads[f'b{n + 1}'] = func_backward(grad, cache[n])
+            grads[f'W{n + 1}'] += self.reg * self.params[f'W{n + 1}']
+
 
         # *****END OF YOUR CODE (DO NOT DELETE/MODIFY THIS LINE)*****
         ############################################################################
