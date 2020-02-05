@@ -282,7 +282,7 @@ def batchnorm_backward(dout, cache):
     dxcap = cache['gamma'] * dout
     
     # for variance
-    dxcap_dvar = -0.5 * (np.power(cache['var'], -1.5) * cache['x_center']).sum(axis=0)
+    dxcap_dvar = -0.5 * np.power(cache['var'], -1.5) * cache['x_center']
 
     # for mean
     dxcap_dmean = -1 / cache['std']
@@ -294,8 +294,8 @@ def batchnorm_backward(dout, cache):
     dvar_dx = 2 * cache['x_center'] / N
 
     # second step
-    dvar = dxcap * dxcap_dvar
-    dmean = dxcap * dxcap_dmean + dvar * dvar_dmean
+    dvar = (dxcap * dxcap_dvar).sum(axis=0)
+    dmean = (dxcap * dxcap_dmean).sum(axis=0) + dvar * dvar_dmean
     dx = dxcap * dxcap_dx + dmean * dmean_dx + dvar * dvar_dx
 
     # *****END OF YOUR CODE (DO NOT DELETE/MODIFY THIS LINE)*****
