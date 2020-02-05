@@ -199,7 +199,21 @@ def batchnorm_forward(x, gamma, beta, bn_param):
         #######################################################################
         # *****START OF YOUR CODE (DO NOT DELETE/MODIFY THIS LINE)*****
 
-        pass
+        cache = dict()
+
+        batch_mean = x.mean(axis=0)
+        batch_var = x.var(axis=0) + eps
+        batch_std = np.sqrt(batch_var)
+        x_center = (x - batch_mean)
+        x_cap = x_center / batch_std
+
+        out = gamma * x_cap + beta
+
+        running_mean = momentum * running_mean + (1 - momentum) * batch_mean
+        running_var = momentum * running_var + (1 - momentum) * batch_var
+
+        cache = {'x': x, 'x_cap': x_cap, 'x_center': x_center, 'gamma': gamma, 
+                 'std': batch_std, 'mean': batch_mean, 'var': batch_var}
 
         # *****END OF YOUR CODE (DO NOT DELETE/MODIFY THIS LINE)*****
         #######################################################################
@@ -213,8 +227,11 @@ def batchnorm_forward(x, gamma, beta, bn_param):
         # Store the result in the out variable.                               #
         #######################################################################
         # *****START OF YOUR CODE (DO NOT DELETE/MODIFY THIS LINE)*****
+        
+        running_std = np.sqrt(running_var + eps)
+        x_cap = (x - running_mean) / running_std
 
-        pass
+        out = gamma * x_cap + beta
 
         # *****END OF YOUR CODE (DO NOT DELETE/MODIFY THIS LINE)*****
         #######################################################################
