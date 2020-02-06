@@ -199,21 +199,39 @@ def batchnorm_forward(x, gamma, beta, bn_param):
         #######################################################################
         # *****START OF YOUR CODE (DO NOT DELETE/MODIFY THIS LINE)*****
 
-        cache = dict()
+        # Step by step
 
-        batch_mean = x.mean(axis=0)
-        batch_var = x.var(axis=0) + eps
-        batch_std = np.sqrt(batch_var)
-        x_center = (x - batch_mean)
-        x_cap = x_center / batch_std
+        # 1
+        x_mean = x.mean(axis=0)
 
-        out = gamma * x_cap + beta
+        # 2
+        x_centered = x - x_mean
+        
+        # 3
+        x_centered_sq = np.power(x_centered, 2)
+        
+        # 4
+        x_var = x_centered_sq.mean(axis=0)
 
-        running_mean = momentum * running_mean + (1 - momentum) * batch_mean
-        running_var = momentum * running_var + (1 - momentum) * batch_var
+        # 5
+        x_std = np.sqrt(x_var + eps)
 
-        cache = {'x': x, 'x_cap': x_cap, 'x_center': x_center, 'gamma': gamma, 
-                 'std': batch_std, 'mean': batch_mean, 'var': batch_var}
+        # 6
+        x_inv_std = 1. / x_std
+        
+        # 7
+        x_cap = x_centered * x_inv_std
+
+        # 8
+        x_cap_scaled = gamma * x_cap
+
+        # 9
+        out = x_cap_scaled + beta
+
+        running_mean = momentum * running_mean + (1 - momentum) * x_mean
+        running_var = momentum * running_var + (1 - momentum) * x_var
+
+        cache = (x, x_mean, x_centered, x_centered_sq, x_var, x_std, x_inv_std, x_cap, x_cap_scaled, gamma, eps)
 
         # *****END OF YOUR CODE (DO NOT DELETE/MODIFY THIS LINE)*****
         #######################################################################
@@ -273,30 +291,44 @@ def batchnorm_backward(dout, cache):
     ###########################################################################
     # *****START OF YOUR CODE (DO NOT DELETE/MODIFY THIS LINE)*****
 
-    # cache = {'x': x, 'x_cap': x_cap, 'gamma': gamma, 'std': batch_std, 'mean': batch_mean, 'var': batch_var}
-    N = dout.shape[0]
+    (x, x_mean, x_centered, x_centered_sq, x_var, x_std, x_inv_std, x_cap, x_cap_scaled, gamma, eps) = cache
+    N, D = dout.shape
 
-    # first step
-    dgamma = (cache['x_cap'] * dout).sum(axis=0)
+    # Step by step
+
+    # 9. forward was: out = x_cap_scaled + beta
     dbeta = dout.sum(axis=0)
-    dxcap = cache['gamma'] * dout
+    dx_cap_scaled = dout
     
-    # for variance
-    dxcap_dvar = -0.5 * np.power(cache['var'], -1.5) * cache['x_center']
+    # 8. forward was:  x_cap_scaled = gamma * x_cap
+    dx_cap = gamma * dx_cap_scaled
+    dgamma = (x_cap * dout).sum(axis=0)
 
-    # for mean
-    dxcap_dmean = -1 / cache['std']
-    dvar_dmean = -2 * cache['x_center'].mean(axis=0)
+    # 7. forward was: x_cap = x_centered * x_inv_std
+    dx_centered_1 = x_inv_std * dx_cap
+    dx_inv_std = (x_centered * dx_cap).sum(axis=0)
+    
+    # 6. forward was: x_inv_std = 1. / x_std
+    dx_std = -np.power(x_std, -2) * dx_inv_std
+    
+    # 5. forward was: x_std = np.sqrt(x_var + eps)
+    dx_var = 0.5 * np.power(x_var + eps, -0.5) * dx_std
+    
+    # 4. forward was: x_var = np.mean(x_centered_sq, axis=0)
+    dx_centered_sq = np.ones((N, D)) * dx_var / N
+    
+    # 3. forward was: x_centered_sq = x_centered ** 2
+    dx_centered_2 = 2 * x_centered * dx_centered_sq
+    dx_centered = dx_centered_1 + dx_centered_2
 
-    # for x
-    dxcap_dx = 1 / cache['std']
-    dmean_dx = 1 / N
-    dvar_dx = 2 * cache['x_center'] / N
+    # 2. forward was: x_centered = x - x_mean
+    dx_1 = dx_centered
+    dx_mean = -dx_centered.sum(axis=0)
 
-    # second step
-    dvar = (dxcap * dxcap_dvar).sum(axis=0)
-    dmean = (dxcap * dxcap_dmean).sum(axis=0) + dvar * dvar_dmean
-    dx = dxcap * dxcap_dx + dmean * dmean_dx + dvar * dvar_dx
+    # 1. forward was: x_mean = np.mean(x, axis=0)
+    dx_2 = np.ones((N, D)) * dx_mean / N
+    dx = dx_1 + dx_2
+
 
     # *****END OF YOUR CODE (DO NOT DELETE/MODIFY THIS LINE)*****
     ###########################################################################
@@ -331,14 +363,14 @@ def batchnorm_backward_alt(dout, cache):
     ###########################################################################
     # *****START OF YOUR CODE (DO NOT DELETE/MODIFY THIS LINE)*****
 
-    N = dout.shape[0]
-    x_cap = cache['x_cap']
+    (x, x_mean, x_centered, x_centered_sq, x_var, x_std, x_inv_std, x_cap, x_cap_scaled, gamma, eps) = cache
+    N, D = dout.shape
  
-    dx_cap = cache['gamma'] * dout 
-    
-    dx = (N * dx_cap - dx_cap.sum(axis=0) - x_cap * (dx_cap * x_cap).sum(axis=0)) / (N * cache['std'])
     dgamma = (x_cap * dout).sum(axis=0)
     dbeta = dout.sum(axis=0)
+    
+    dx = (1. / N) * gamma * x_inv_std * (N * dout - dout.sum(axis=0) -
+                                           x_centered * x_inv_std ** 2 * (dout * x_centered).sum(axis=0))
 
     # *****END OF YOUR CODE (DO NOT DELETE/MODIFY THIS LINE)*****
     ###########################################################################
