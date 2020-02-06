@@ -272,20 +272,25 @@ class FullyConnectedNet(object):
             x = X if n == 0 else scores
             w = self.params[f'W{n + 1}']
             b = self.params[f'b{n + 1}']
-            kwargs = (x, w, b)
-            
-            if n == self.num_layers - 1:
-                func_forward = affine_forward
-            else:
-                if self.normalization=='batchnorm':
-                    func_forward = self.affine_bn_relu_forward
-                    gamma = self.params[f'gamma{n + 1}']
-                    beta = self.params[f'beta{n + 1}']
-                    kwargs = (x, w, b, gamma, beta, self.bn_params[n])
-                else:
-                    func_forward = affine_relu_forward
 
-            scores, cache[n] = func_forward(*kwargs)
+            # affine
+            scores, affine_cache = affine_forward(x, w, b)
+            cache[f'affine{n + 1}'] = affine_cache
+
+            if n == self.num_layers - 1:
+                continue
+
+            # batchnorm
+            if self.normalization=='batchnorm':
+                gamma = self.params[f'gamma{n + 1}']
+                beta = self.params[f'beta{n + 1}']
+
+                scores, bn_cache = batchnorm_forward(scores, gamma, beta, self.bn_params[n])
+                cache[f'bn{n + 1}'] = bn_cache
+
+            # relu
+            scores, relu_cache = relu_forward(scores)
+            cache[f'relu{n + 1}'] = relu_cache
 
         # *****END OF YOUR CODE (DO NOT DELETE/MODIFY THIS LINE)*****
         ############################################################################
@@ -313,22 +318,23 @@ class FullyConnectedNet(object):
         # *****START OF YOUR CODE (DO NOT DELETE/MODIFY THIS LINE)*****
 
         # {affine - [batch/layer norm] - relu - [dropout]} x (L - 1) - affine - softmax
-        loss, grad_loss = softmax_loss(scores, y)
+        loss, grad = softmax_loss(scores, y)
         for n in range(self.num_layers):
             loss += self.reg * np.power(self.params[f'W{n + 1}'], 2).sum() / 2
 
-        grad = grad_loss
         for n in range(self.num_layers)[::-1]:
-            if n == self.num_layers - 1:
-                grad, grads[f'W{n + 1}'], grads[f'b{n + 1}'] = affine_backward(grad, cache[n])
-            else:
+            if n < self.num_layers - 1:
+                # relu
+                grad = relu_backward(grad, cache[f'relu{n + 1}'])
+
+                # batchnorm
                 if self.normalization=='batchnorm':
-                    grad, grads[f'W{n + 1}'], grads[f'b{n + 1}'], grads[f'gamma{n + 1}'], grads[f'beta{n + 1}'] = self.affine_bn_relu_backward(grad, cache[n])
-                else:
-                    grad, grads[f'W{n + 1}'], grads[f'b{n + 1}'] = affine_relu_backward(grad, cache[n])
+                    grad, grads[f'gamma{n + 1}'], grads[f'beta{n + 1}'] = batchnorm_backward(grad, cache[f'bn{n + 1}'])
+
+            # affine
+            grad, grads[f'W{n + 1}'], grads[f'b{n + 1}'] = affine_backward(grad, cache[f'affine{n + 1}'])
 
             grads[f'W{n + 1}'] += self.reg * self.params[f'W{n + 1}']
-
 
         # *****END OF YOUR CODE (DO NOT DELETE/MODIFY THIS LINE)*****
         ############################################################################
