@@ -288,6 +288,14 @@ class FullyConnectedNet(object):
                 scores, bn_cache = batchnorm_forward(scores, gamma, beta, self.bn_params[n])
                 cache[f'bn{n + 1}'] = bn_cache
 
+            # layernorm
+            if self.normalization=='layernorm':
+                gamma = self.params[f'gamma{n + 1}']
+                beta = self.params[f'beta{n + 1}']
+
+                scores, ln_cache = layernorm_forward(scores, gamma, beta, self.bn_params[n])
+                cache[f'ln{n + 1}'] = ln_cache
+
             # relu
             scores, relu_cache = relu_forward(scores)
             cache[f'relu{n + 1}'] = relu_cache
@@ -331,6 +339,10 @@ class FullyConnectedNet(object):
                 if self.normalization=='batchnorm':
                     grad, grads[f'gamma{n + 1}'], grads[f'beta{n + 1}'] = batchnorm_backward(grad, cache[f'bn{n + 1}'])
 
+                # layernorm
+                if self.normalization=='layernorm':
+                    grad, grads[f'gamma{n + 1}'], grads[f'beta{n + 1}'] = layernorm_backward(grad, cache[f'ln{n + 1}'])
+
             # affine
             grad, grads[f'W{n + 1}'], grads[f'b{n + 1}'] = affine_backward(grad, cache[f'affine{n + 1}'])
 
@@ -342,33 +354,3 @@ class FullyConnectedNet(object):
         ############################################################################
 
         return loss, grads
-
-    @staticmethod
-    def affine_bn_relu_forward(x, w, b, gamma, beta, bn_param):
-        """
-        Convenience layer that perorms an affine transform followed by a ReLU
-
-        Inputs:
-        - x: Input to the affine layer
-        - w, b: Weights for the affine layer
-
-        Returns a tuple of:
-        - out: Output from the ReLU
-        - cache: Object to give to the backward pass
-        """
-        fc_out, fc_cache = affine_forward(x, w, b)
-        bn_out, bn_cache = batchnorm_forward(fc_out, gamma, beta, bn_param)
-        out, relu_cache = relu_forward(bn_out)
-        cache = (fc_cache, bn_cache, relu_cache)
-        return out, cache
-
-    @staticmethod
-    def affine_bn_relu_backward(dout, cache):
-        """
-        Backward pass for the affine-relu convenience layer
-        """
-        fc_cache, bn_cache, relu_cache = cache
-        dfc = relu_backward(dout, relu_cache)
-        dbn, dgamma, dbeta = batchnorm_backward_alt(dfc, bn_cache)
-        dx, dw, db = affine_backward(dbn, fc_cache)
-        return dx, dw, db, dgamma, dbeta

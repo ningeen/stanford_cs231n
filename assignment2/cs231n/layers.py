@@ -416,7 +416,37 @@ def layernorm_forward(x, gamma, beta, ln_param):
     ###########################################################################
     # *****START OF YOUR CODE (DO NOT DELETE/MODIFY THIS LINE)*****
 
-    pass
+    # Step by step
+
+    # 1
+    x_mean = x.mean(axis=1, keepdims=True)
+
+    # 2
+    x_centered = x - x_mean
+    
+    # 3
+    x_centered_sq = np.power(x_centered, 2)
+    
+    # 4
+    x_var = x_centered_sq.mean(axis=1, keepdims=True)
+
+    # 5
+    x_std = np.sqrt(x_var + eps)
+
+    # 6
+    x_inv_std = 1. / x_std
+    
+    # 7
+    x_cap = x_centered * x_inv_std
+
+    # 8
+    x_cap_scaled = gamma * x_cap
+
+    # 9
+    out = x_cap_scaled + beta
+
+    cache = (x, x_mean, x_centered, x_centered_sq, x_var, x_std, x_inv_std, x_cap, x_cap_scaled, gamma, eps)
+
 
     # *****END OF YOUR CODE (DO NOT DELETE/MODIFY THIS LINE)*****
     ###########################################################################
@@ -451,7 +481,43 @@ def layernorm_backward(dout, cache):
     ###########################################################################
     # *****START OF YOUR CODE (DO NOT DELETE/MODIFY THIS LINE)*****
 
-    pass
+    (x, x_mean, x_centered, x_centered_sq, x_var, x_std, x_inv_std, x_cap, x_cap_scaled, gamma, eps) = cache
+    N, D = dout.shape
+
+    # Step by step
+
+    # 9. forward was: out = x_cap_scaled + beta
+    dbeta = dout.sum(axis=0)
+    dx_cap_scaled = dout
+    
+    # 8. forward was:  x_cap_scaled = gamma * x_cap
+    dx_cap = gamma * dx_cap_scaled
+    dgamma = (x_cap * dout).sum(axis=0)
+
+    # 7. forward was: x_cap = x_centered * x_inv_std
+    dx_centered_1 = x_inv_std * dx_cap
+    dx_inv_std = (x_centered * dx_cap).sum(axis=1, keepdims=True)
+    
+    # 6. forward was: x_inv_std = 1. / x_std
+    dx_std = -np.power(x_std, -2) * dx_inv_std
+    
+    # 5. forward was: x_std = np.sqrt(x_var + eps)
+    dx_var = 0.5 * np.power(x_var + eps, -0.5) * dx_std
+    
+    # 4. forward was: x_var = np.mean(x_centered_sq, axis=0)
+    dx_centered_sq = np.ones((N, D)) * dx_var / D
+    
+    # 3. forward was: x_centered_sq = x_centered ** 2
+    dx_centered_2 = 2 * x_centered * dx_centered_sq
+    dx_centered = dx_centered_1 + dx_centered_2
+
+    # 2. forward was: x_centered = x - x_mean
+    dx_1 = dx_centered
+    dx_mean = -dx_centered.sum(axis=1, keepdims=True)
+
+    # 1. forward was: x_mean = np.mean(x, axis=0)
+    dx_2 = np.ones((N, D)) * dx_mean / D
+    dx = dx_1 + dx_2
 
     # *****END OF YOUR CODE (DO NOT DELETE/MODIFY THIS LINE)*****
     ###########################################################################
