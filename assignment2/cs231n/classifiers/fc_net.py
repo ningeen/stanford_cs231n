@@ -300,6 +300,11 @@ class FullyConnectedNet(object):
             scores, relu_cache = relu_forward(scores)
             cache[f'relu{n + 1}'] = relu_cache
 
+            # dropout 
+            if self.use_dropout:
+                scores, dropout_cache = dropout_forward(scores, self.dropout_param)
+                cache[f'dropout{n + 1}'] = dropout_cache
+
         # *****END OF YOUR CODE (DO NOT DELETE/MODIFY THIS LINE)*****
         ############################################################################
         #                             END OF YOUR CODE                             #
@@ -332,6 +337,10 @@ class FullyConnectedNet(object):
 
         for n in range(self.num_layers)[::-1]:
             if n < self.num_layers - 1:
+                # dropout
+                if self.use_dropout:
+                    grad = dropout_backward(grad, cache[f'dropout{n + 1}'])
+
                 # relu
                 grad = relu_backward(grad, cache[f'relu{n + 1}'])
 
