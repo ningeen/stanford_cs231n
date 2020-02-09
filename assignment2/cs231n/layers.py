@@ -852,7 +852,13 @@ def spatial_batchnorm_forward(x, gamma, beta, bn_param):
     ###########################################################################
     # *****START OF YOUR CODE (DO NOT DELETE/MODIFY THIS LINE)*****
 
-    pass
+    (N, C, H, W) = x.shape
+
+    x_trasposed = np.transpose(x, (0, 2, 3, 1))
+    x_reshaped = x_trasposed.reshape((-1, C))
+    out_reshaped, cache = batchnorm_forward(x_reshaped, gamma, beta, bn_param)
+    out_trasposed = out_reshaped.reshape((N, H, W, C))
+    out = np.transpose(out_trasposed, (0, 3, 1, 2))
 
     # *****END OF YOUR CODE (DO NOT DELETE/MODIFY THIS LINE)*****
     ###########################################################################
@@ -885,8 +891,14 @@ def spatial_batchnorm_backward(dout, cache):
     # Your implementation should be very short; ours is less than five lines. #
     ###########################################################################
     # *****START OF YOUR CODE (DO NOT DELETE/MODIFY THIS LINE)*****
+    
+    (N, C, H, W) = dout.shape
 
-    pass
+    dout_trasposed = np.transpose(dout, (0, 2, 3, 1))
+    dout_reshaped = dout_trasposed.reshape((-1, C))
+    dx_reshaped, dgamma, dbeta = batchnorm_backward_alt(dout_reshaped, cache)
+    dx_trasposed = dx_reshaped.reshape((N, H, W, C))
+    dx = np.transpose(dx_trasposed, (0, 3, 1, 2))
 
     # *****END OF YOUR CODE (DO NOT DELETE/MODIFY THIS LINE)*****
     ###########################################################################
@@ -907,7 +919,7 @@ def spatial_groupnorm_forward(x, gamma, beta, G, gn_param):
     - x: Input data of shape (N, C, H, W)
     - gamma: Scale parameter, of shape (C,)
     - beta: Shift parameter, of shape (C,)
-    - G: Integer mumber of groups to split into, should be a divisor of C
+    - G: Integer number of groups to split into, should be a divisor of C
     - gn_param: Dictionary with the following keys:
       - eps: Constant for numeric stability
 
