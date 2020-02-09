@@ -755,8 +755,20 @@ def max_pool_forward_naive(x, pool_param):
     # TODO: Implement the max-pooling forward pass                            #
     ###########################################################################
     # *****START OF YOUR CODE (DO NOT DELETE/MODIFY THIS LINE)*****
+    
+    pool_height, pool_width, stride = pool_param['pool_height'], pool_param['pool_width'], pool_param['stride']
+    (N, C, H, W) = x.shape
+    out = np.zeros((N, C, 1 + (H - pool_height) // stride, 1 + (W - pool_width) // stride))
 
-    pass
+    for n_sample in range(N):
+        hp = 0
+        for h_out in range(out.shape[2]):
+            wp = 0
+            for w_out in range(out.shape[3]):
+                out[n_sample, :, h_out, w_out] = x[n_sample, :, hp: hp + pool_height, wp: wp + pool_width].max(axis=(1, 2))
+                wp += stride
+            hp += stride
+
 
     # *****END OF YOUR CODE (DO NOT DELETE/MODIFY THIS LINE)*****
     ###########################################################################
@@ -783,7 +795,22 @@ def max_pool_backward_naive(dout, cache):
     ###########################################################################
     # *****START OF YOUR CODE (DO NOT DELETE/MODIFY THIS LINE)*****
 
-    pass
+    (x, pool_param) = cache
+    pool_height, pool_width, stride = pool_param['pool_height'], pool_param['pool_width'], pool_param['stride']
+    (N, C, H, W) = x.shape
+
+    dx = np.zeros_like(x)
+    for n_sample in range(N):
+        hp = 0
+        for h_out in range(dout.shape[2]):
+            wp = 0
+            for w_out in range(dout.shape[3]):
+                for channel in range(C):
+                    x_window = x[n_sample, channel, hp: hp + pool_height, wp: wp + pool_width]
+                    ind = np.unravel_index(np.argmax(x_window, axis=None), x_window.shape)
+                    dx[n_sample, channel, hp + ind[0], wp + ind[1]] = dout[n_sample, channel, h_out, w_out]
+                wp += stride
+            hp += stride
 
     # *****END OF YOUR CODE (DO NOT DELETE/MODIFY THIS LINE)*****
     ###########################################################################
