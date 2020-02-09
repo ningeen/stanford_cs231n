@@ -699,8 +699,30 @@ def conv_backward_naive(dout, cache):
     # TODO: Implement the convolutional backward pass.                        #
     ###########################################################################
     # *****START OF YOUR CODE (DO NOT DELETE/MODIFY THIS LINE)*****
+    
+    (x, w, b, conv_param) = cache
+    (N, C, H, W) = x.shape
+    (F, C, HH, WW) = w.shape
+    stride, pad = conv_param['stride'], conv_param['pad']
+    dw = np.zeros_like(w)
+    dx = np.zeros_like(x)
 
-    pass
+    for n_sample in range(N):
+        for n_filter in range(F):
+            hp = 0
+            for h_out in range(dout.shape[2]):
+                wp = 0
+                for w_out in range(dout.shape[3]):
+                    dout_curr = dout[n_sample, n_filter, h_out, w_out] * np.ones(dw.shape[1:])
+                    dw[n_filter] += x[n_sample, :, hp: hp + HH, wp: wp + WW] * dout_curr
+
+                    dx[n_sample, :, hp: hp + HH, wp: wp + WW] += w[n_filter] * dout_curr
+                    
+                    wp += stride
+                hp += stride
+
+    db = dout.sum(axis=(0, 2, 3))
+    dx = dx[:, :, pad:-pad, pad:-pad]
 
     # *****END OF YOUR CODE (DO NOT DELETE/MODIFY THIS LINE)*****
     ###########################################################################
