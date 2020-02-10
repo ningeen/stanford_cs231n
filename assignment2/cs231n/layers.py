@@ -951,7 +951,7 @@ def spatial_groupnorm_forward(x, gamma, beta, G, gn_param):
 
     out = x_cap * gamma + beta
 
-    cache = (x, x_group, x_mean, x_var, x_centered, x_inv_std, x_cap, gamma, beta, gn_param, x_group_shape, G)
+    cache = (x, x_group, x_mean, x_var, x_centered, x_inv_std, x_cap, gamma, beta, gn_param, x_group_shape)
 
 
     # *****END OF YOUR CODE (DO NOT DELETE/MODIFY THIS LINE)*****
@@ -982,19 +982,22 @@ def spatial_groupnorm_backward(dout, cache):
     ###########################################################################
     # *****START OF YOUR CODE (DO NOT DELETE/MODIFY THIS LINE)*****
 
-    (x, x_group, x_mean, x_var, x_centered, x_inv_std, x_cap, gamma, beta, gn_param, x_group_shape, G) = cache
+    (x, x_group, x_mean, x_var, x_centered, x_inv_std, x_cap, gamma, beta, gn_param, x_group_shape) = cache
     (N, C, H, W) = x.shape
 
     dbeta = dout.sum(axis=(0, 2, 3), keepdims=True)
     dgamma = (dout * x_cap).sum(axis=(0, 2, 3), keepdims=True)
 
-    M = x_group_shape[0]
-    dout_reshape = dout.reshape(x_group_shape)
-
-    dx_cap = (1. / M) * x_inv_std * (M * dout_reshape - dout_reshape.sum(axis=0) -
-                                       x_centered * x_inv_std ** 2 * (dout_reshape * x_centered).sum(axis=0))
-
-    dx = dx_cap.reshape((N, C, H, W)) * gamma
+    (M, D) = x_group_shape
+    dx_cap = (dout * gamma).reshape((M, D))
+    dx_var = -0.5 * np.power(x_inv_std, 3) * (x_centered * dx_cap).sum(axis=1, keepdims=True)
+    
+    dx_centered_1 = dx_cap * x_inv_std
+    dx_centered_2 = 2 * x_centered * (np.ones((M, D)) * dx_var / D)
+    dx_centered = dx_centered_1 + dx_centered_2
+    
+    dx = dx_centered + np.ones((M, D)) * (-dx_centered.sum(axis=1, keepdims=True)) / D
+    dx = dx.reshape((N, C, H, W))
 
     # *****END OF YOUR CODE (DO NOT DELETE/MODIFY THIS LINE)*****
     ###########################################################################
