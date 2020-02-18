@@ -142,7 +142,34 @@ class CaptioningRNN(object):
         ############################################################################
         # *****START OF YOUR CODE (DO NOT DELETE/MODIFY THIS LINE)*****
 
-        pass
+        # FORWARD PASS
+
+        # (1) Use an affine transformation to compute the initial hidden state     #
+        #     from the image features. This should produce an array of shape (N, H)
+        affine, cache_affine = affine_forward(features, W_proj, b_proj)
+
+        # (2) Use a word embedding layer to transform the words in captions_in     #
+        #     from indices to vectors, giving an array of shape (N, T, W).         #
+        emb, cache_emb = word_embedding_forward(captions_in, W_embed)
+
+        # (3) Use either a vanilla RNN or LSTM (depending on self.cell_type) to    #
+        #     process the sequence of input word vectors and produce hidden state  #
+        #     vectors for all timesteps, producing an array of shape (N, T, H).    #
+        if self.cell_type == 'rnn':
+            rnn, cache_rnn = rnn_forward(emb, affine, Wx, Wh, b)
+        else:
+            raise Exception
+
+        # (4) Use a (temporal) affine transformation to compute scores over the    #
+        #     vocabulary at every timestep using the hidden states, giving an      #
+        #     array of shape (N, T, V).                                            #
+        temp_affine, cache_temp_affine = temporal_affine_forward(rnn, W_vocab, b_vocab)
+
+        # (5) Use (temporal) softmax to compute loss using captions_out, ignoring  #
+        #     the points where the output word is <NULL> using the mask above.     #
+        loss, dout = temporal_softmax_loss(temp_affine, captions_out, mask)
+
+
 
         # *****END OF YOUR CODE (DO NOT DELETE/MODIFY THIS LINE)*****
         ############################################################################
