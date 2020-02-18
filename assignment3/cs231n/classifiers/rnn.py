@@ -245,7 +245,20 @@ class CaptioningRNN(object):
         ###########################################################################
         # *****START OF YOUR CODE (DO NOT DELETE/MODIFY THIS LINE)*****
 
-        pass
+        h, _ = affine_forward(features, W_proj, b_proj)
+        caption_in = np.ones(N, dtype=np.int64) * self._start
+
+        for i in range(max_length):
+            emb = W_embed[caption_in]
+
+            if self.cell_type == 'rnn':
+                h, _ = rnn_step_forward(emb, h, Wx, Wh, b)
+            else:
+                raise Exception
+            
+            last_affine, _ = affine_forward(h, W_vocab, b_vocab)
+            caption_in = last_affine.argmax(axis=1)
+            captions[:, i] = caption_in
 
         # *****END OF YOUR CODE (DO NOT DELETE/MODIFY THIS LINE)*****
         ############################################################################
