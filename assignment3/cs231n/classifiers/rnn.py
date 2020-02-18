@@ -170,6 +170,13 @@ class CaptioningRNN(object):
         loss, dout = temporal_softmax_loss(temp_affine, captions_out, mask)
 
 
+        # BACKWARD PASS
+        drnn, grads['W_vocab'], grads['b_vocab'] = temporal_affine_backward(dout, cache_temp_affine)
+
+        demb, daffine, grads['Wx'], grads['Wh'], grads['b'], = rnn_backward(drnn, cache_rnn)
+        grads['W_embed'] = word_embedding_backward(demb, cache_emb)
+        _, grads['W_proj'], grads['b_proj'] = affine_backward(daffine, cache_affine)
+
 
         # *****END OF YOUR CODE (DO NOT DELETE/MODIFY THIS LINE)*****
         ############################################################################
