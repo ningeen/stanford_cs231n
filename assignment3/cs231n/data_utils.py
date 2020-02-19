@@ -4,7 +4,7 @@ from builtins import range
 from six.moves import cPickle as pickle
 import numpy as np
 import os
-from scipy.misc import imread
+from imageio import imread
 import platform
 
 def load_pickle(f):
@@ -255,6 +255,10 @@ def load_imagenet_val(num=None):
     f = np.load(imagenet_fn)
     X = f['X']
     y = f['y']
+
+    # ValueError: Object arrays cannot be loaded when allow_pickle=False
+    f.allow_pickle = True
+
     class_names = f['label_map'].item()
     if num is not None:
         X = X[:num]
