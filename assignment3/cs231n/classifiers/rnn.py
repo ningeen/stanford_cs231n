@@ -157,6 +157,8 @@ class CaptioningRNN(object):
         #     vectors for all timesteps, producing an array of shape (N, T, H).    #
         if self.cell_type == 'rnn':
             rnn, cache_rnn = rnn_forward(emb, affine, Wx, Wh, b)
+        elif self.cell_type == 'lstm':
+            rnn, cache_rnn = lstm_forward(emb, affine, Wx, Wh, b)
         else:
             raise Exception
 
@@ -173,7 +175,13 @@ class CaptioningRNN(object):
         # BACKWARD PASS
         drnn, grads['W_vocab'], grads['b_vocab'] = temporal_affine_backward(dout, cache_temp_affine)
 
-        demb, daffine, grads['Wx'], grads['Wh'], grads['b'], = rnn_backward(drnn, cache_rnn)
+        if self.cell_type == 'rnn':
+            demb, daffine, grads['Wx'], grads['Wh'], grads['b'], = rnn_backward(drnn, cache_rnn)
+        elif self.cell_type == 'lstm':
+            demb, daffine, grads['Wx'], grads['Wh'], grads['b'], = lstm_backward(drnn, cache_rnn)
+        else:
+            raise Exception
+
         grads['W_embed'] = word_embedding_backward(demb, cache_emb)
         _, grads['W_proj'], grads['b_proj'] = affine_backward(daffine, cache_affine)
 
