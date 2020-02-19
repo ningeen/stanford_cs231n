@@ -303,7 +303,18 @@ def lstm_step_forward(x, prev_h, prev_c, Wx, Wh, b):
     #############################################################################
     # *****START OF YOUR CODE (DO NOT DELETE/MODIFY THIS LINE)*****
 
-    pass
+    (N, H) = prev_h.shape
+
+    A = np.dot(x, Wx) + np.dot(prev_h, Wh) + b  # (N, 4H)
+    i_gate = sigmoid(A[:, :H])
+    f_gate = sigmoid(A[:, H:2*H])
+    o_gate = sigmoid(A[:, 2*H:3*H])
+    g = np.tanh(A[:, 3*H:])
+
+    next_c = f_gate * prev_c + i_gate * g
+    tanhc = np.tanh(next_c)
+    next_h = tanhc * o_gate
+    cache = (x, prev_h, prev_c, Wx, Wh, b, A, i_gate, f_gate, o_gate, g, next_c, tanhc, H)
 
     # *****END OF YOUR CODE (DO NOT DELETE/MODIFY THIS LINE)*****
     ##############################################################################
@@ -339,7 +350,34 @@ def lstm_step_backward(dnext_h, dnext_c, cache):
     #############################################################################
     # *****START OF YOUR CODE (DO NOT DELETE/MODIFY THIS LINE)*****
 
-    pass
+    (x, prev_h, prev_c, Wx, Wh, b, A, i_gate, f_gate, o_gate, g, next_c, tanhc, H) = cache
+
+    # forward: next_h = np.tanh(next_c) * o_gate
+    do_gate = tanhc * dnext_h
+    dtanhc = o_gate * dnext_h
+    dnext_c_h = (1 - tanhc ** 2) * dtanhc
+
+    # dnext_c = grad from prev layer + grad from next_h
+    dnext_c += dnext_c_h
+
+    # forward: next_c = f_gate * prev_c + i_gate * g
+    di_gate = g * dnext_c
+    dg = i_gate * dnext_c
+    dprev_c = f_gate * dnext_c
+    df_gate = prev_c * dnext_c
+
+    dA = np.zeros_like(A)  # (N, 4H)
+    dA[:, :H] = i_gate * (1 - i_gate) * di_gate
+    dA[:, H:2*H] = f_gate * (1 - f_gate) * df_gate
+    dA[:, 2*H:3*H] = o_gate * (1 - o_gate) * do_gate
+    dA[:, 3*H:] = (1 - g ** 2) * dg
+
+    # forward: A = np.dot(x, Wx) + np.dot(prev_h, Wh) + b
+    dx = np.dot(dA, Wx.T)
+    dWx = np.dot(x.T, dA)
+    dprev_h = np.dot(dA, Wh.T)
+    dWh = np.dot(prev_h.T, dA)
+    db = dA.sum(axis=0)
 
     # *****END OF YOUR CODE (DO NOT DELETE/MODIFY THIS LINE)*****
     ##############################################################################
@@ -377,8 +415,6 @@ def lstm_forward(x, h0, Wx, Wh, b):
     # You should use the lstm_step_forward function that you just defined.      #
     #############################################################################
     # *****START OF YOUR CODE (DO NOT DELETE/MODIFY THIS LINE)*****
-
-    pass
 
     # *****END OF YOUR CODE (DO NOT DELETE/MODIFY THIS LINE)*****
     ##############################################################################
