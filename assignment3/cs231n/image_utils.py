@@ -62,7 +62,8 @@ def image_from_url(url):
     """
     try:
         f = urllib.request.urlopen(url)
-        _, fname = tempfile.mkstemp()
+        # _, fname = tempfile.mkstemp()
+        fname = 'im' + str(np.random.randint(1000000))
         with open(fname, 'wb') as ff:
             ff.write(f.read())
         img = imread(fname)
