@@ -415,6 +415,17 @@ def lstm_forward(x, h0, Wx, Wh, b):
     # You should use the lstm_step_forward function that you just defined.      #
     #############################################################################
     # *****START OF YOUR CODE (DO NOT DELETE/MODIFY THIS LINE)*****
+    
+    N, T, H = x.shape[0], x.shape[1], h0.shape[-1]
+    cache = {}
+    
+    h = np.zeros((N, T, H))
+    ht = h0
+    ct = np.zeros_like(h0)
+
+    for i in range(T):
+        ht, ct, cache[i] = lstm_step_forward(x[:, i], ht, ct, Wx, Wh, b)
+        h[:, i] = ht
 
     # *****END OF YOUR CODE (DO NOT DELETE/MODIFY THIS LINE)*****
     ##############################################################################
@@ -445,8 +456,18 @@ def lstm_backward(dh, cache):
     # You should use the lstm_step_backward function that you just defined.     #
     #############################################################################
     # *****START OF YOUR CODE (DO NOT DELETE/MODIFY THIS LINE)*****
+    
+    (N, T, H) = dh.shape
+    (N, D) = cache[0][0].shape
+    dx, dht, dWx, dWh, db = np.zeros((N, T, D)), np.zeros((N, H)), np.zeros((D, 4*H)), np.zeros((H, 4*H)), np.zeros((4*H, ))
+    dct = np.zeros_like(dht)
 
-    pass
+    for i in range(T)[::-1]:
+        dx[:, i], dht, dct, dWxt, dWht, dbt = lstm_step_backward(dh[:, i] + dht, dct, cache[i])
+        dWx += dWxt
+        dWh += dWht
+        db += dbt
+    dh0 = dht
 
     # *****END OF YOUR CODE (DO NOT DELETE/MODIFY THIS LINE)*****
     ##############################################################################
