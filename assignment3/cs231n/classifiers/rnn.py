@@ -256,11 +256,16 @@ class CaptioningRNN(object):
         h, _ = affine_forward(features, W_proj, b_proj)
         caption_in = np.ones(N, dtype=np.int64) * self._start
 
+        if self.cell_type == 'lstm':
+            c = np.zeros_like(h)
+        
         for i in range(max_length):
             emb = W_embed[caption_in]
 
             if self.cell_type == 'rnn':
                 h, _ = rnn_step_forward(emb, h, Wx, Wh, b)
+            elif self.cell_type == 'lstm':
+                h, c, _ = lstm_step_forward(emb, h, c, Wx, Wh, b)
             else:
                 raise Exception
             
