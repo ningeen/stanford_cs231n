@@ -1,7 +1,7 @@
 # Stanford CS231n
-Course: http://cs231n.stanford.edu
-Notes: http://cs231n.github.io
-Lecture videos: [2016](https://www.youtube.com/playlist?list=PLkt2uSq6rBVctENoVBg1TpCC7OQi31AlC)
+Course: http://cs231n.stanford.edu  
+Notes: http://cs231n.github.io  
+Lecture videos: [2016](https://www.youtube.com/playlist?list=PLkt2uSq6rBVctENoVBg1TpCC7OQi31AlC)  
 
 **Assignment #1**
 - [x] Q1: k-Nearest Neighbor classifier
