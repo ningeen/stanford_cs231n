@@ -1,5 +1,7 @@
-# stanford_cs231n
-Solving http://cs231n.stanford.edu
+# Stanford CS231n
+Course: http://cs231n.stanford.edu
+Notes: http://cs231n.github.io
+Lecture videos: [2016](https://www.youtube.com/playlist?list=PLkt2uSq6rBVctENoVBg1TpCC7OQi31AlC)
 
 **Assignment #1**
 - [x] Q1: k-Nearest Neighbor classifier
@@ -13,11 +15,11 @@ Solving http://cs231n.stanford.edu
 - [x] Q2: Batch Normalization
 - [x] Q3: Dropout
 - [x] Q4: Convolutional Networks
-- [x] Q5: PyTorch / TensorFlow on CIFAR-10
+- [x] Q5: PyTorch / TensorFlow on CIFAR-10 [PyTorch]
 
 **Assignment #3**
-- [ ] Q1: Image Captioning with Vanilla RNNs
-- [ ] Q2: Image Captioning with LSTMs 
-- [ ] Q3: Network Visualization: Saliency maps, Class Visualization, and Fooling Images
-- [ ] Q4: Style Transfer
-- [ ] Q5: Generative Adversarial Networks
+- [x] Q1: Image Captioning with Vanilla RNNs
+- [x] Q2: Image Captioning with LSTMs 
+- [x] Q3: Network Visualization: Saliency maps, Class Visualization, and Fooling Images [PyTorch]
+- [x] Q4: Style Transfer [PyTorch]
+- [x] Q5: Generative Adversarial Networks [PyTorch]
